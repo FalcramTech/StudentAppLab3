@@ -1,9 +1,11 @@
 ﻿using StudentApp.Models;
+using StudentApp.Repositories;
+using StudentApp.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using StudentApp.Services;
 
 namespace StudentApp.ViewModels
 {
@@ -12,6 +14,10 @@ namespace StudentApp.ViewModels
         private Student _student = new Student();
 
         private readonly IAppStateService _appStateService;
+        private readonly IStudentRepository _repository;
+
+        private readonly SyncQueueService _syncQueueService;
+
 
         public string FullName
         {
@@ -36,6 +42,19 @@ namespace StudentApp.ViewModels
                 if (_student.Group != value)
                 {
                     _student.Group = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string StudentCardNumber
+        {
+            get => _student.StudentCardNumber;
+            set
+            {
+                if (_student.StudentCardNumber != value)
+                {
+                    _student.StudentCardNumber = value;
                     OnPropertyChanged();
                 }
             }
@@ -66,12 +85,18 @@ namespace StudentApp.ViewModels
 
         public ICommand LoadCommand { get; }
 
-        public StudentViewModel(IAppStateService appStateService)
+        public ICommand UpdateStudentCommand { get; }
+
+        public ICommand DeleteStudentCommand { get; }
+
+        public StudentViewModel(IAppStateService appStateService, IStudentRepository repository, SyncQueueService syncQueueService)
         {
             _appStateService = appStateService;
+            _repository = repository;
+            _syncQueueService = syncQueueService;
 
             AddStudentCommand = new Command(
-                AddStudent,
+                async () => await AddStudentAsync(),
                 CanAddStudent
             );
 
@@ -79,7 +104,38 @@ namespace StudentApp.ViewModels
                 async student => await OpenDetailsAsync(student)
             );
 
-            LoadCommand = new Command(RestoreState);
+            LoadCommand = new Command(
+                async () => await LoadStudentsAsync()
+            );
+
+            UpdateStudentCommand = new Command<Student>(
+                async student => await UpdateStudentAsync(student)
+            );
+
+            DeleteStudentCommand = new Command<Student>(
+                async student => await DeleteStudentAsync(student)
+            );
+        }
+
+        private async Task LoadStudentsAsync()
+        {
+            try
+            {
+                var students = await _repository.GetAllAsync();
+
+                Students.Clear();
+
+                foreach (var student in students)
+                {
+                    Students.Add(student);
+                }
+
+                Debug.WriteLine("Дані студентів завантажено з SQLite");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Помилка завантаження: {ex}");
+            }
         }
 
         private bool CanAddStudent()
@@ -87,25 +143,84 @@ namespace StudentApp.ViewModels
             return !string.IsNullOrWhiteSpace(FullName);
         }
 
-        private void AddStudent()
+
+        private async Task AddStudentAsync()
         {
+            if (!CanAddStudent())
+                return;
+
             var newStudent = new Student
             {
                 FullName = FullName,
                 Group = Group,
-                AverageScore = AverageScore
+                AverageScore = AverageScore,
+                StudentCardNumber = StudentCardNumber
             };
 
-            Students.Add(newStudent);
+            try
+            {
+                await _repository.SaveAsync(newStudent);
 
-            FullName = string.Empty;
-            Group = string.Empty;
-            AverageScore = 0;
+                await _syncQueueService.AddChangeAsync(
+                    newStudent, "Insert");
+
+                await LoadStudentsAsync();
+
+                FullName = string.Empty;
+                Group = string.Empty;
+                AverageScore = 0;
+                StudentCardNumber = string.Empty;
+
+                Debug.WriteLine("Студента збережено в SQLite. Номер квитка зашифровано.");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Помилка додавання: {ex}");
+            }
+        }
+
+
+        private async Task UpdateStudentAsync(Student student)
+        {
+            if (student == null)
+                return;
+
+            try
+            {
+                await _repository.SaveAsync(student);
+
+                await LoadStudentsAsync();
+
+                Debug.WriteLine("Дані студента оновлено в SQLite");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Помилка оновлення: {ex}");
+            }
+        }
+
+        private async Task DeleteStudentAsync(Student student)
+        {
+            if (student == null)
+                return;
+
+            try
+            {
+                await _repository.DeleteAsync(student);
+
+                Students.Remove(student);
+
+                Debug.WriteLine("Студента видалено з SQLite");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Помилка видалення: {ex}");
+            }
         }
 
         private async Task OpenDetailsAsync(Student student)
         {
-            if (student is null)
+            if (student == null)
                 return;
 
             var parameters = new Dictionary<string, object>
@@ -122,10 +237,13 @@ namespace StudentApp.ViewModels
         public void ApplyQueryAttributes(
             IDictionary<string, object> query)
         {
-            if (query.TryGetValue("UpdatedStudent", out var value)
+            if (query.TryGetValue(
+                "UpdatedStudent", out var value)
                 && value is Student updatedStudent)
             {
-                var index = Students.IndexOf(updatedStudent);
+                var index = Students
+                    .ToList()
+                    .FindIndex(s => s.Id == updatedStudent.Id);
 
                 if (index >= 0)
                 {

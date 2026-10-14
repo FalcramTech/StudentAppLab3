@@ -1,16 +1,21 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using StudentApp.ViewModels;
 using System.Diagnostics;
+using StudentApp.Services;
 
 namespace StudentApp
 {
     public partial class App : Application
     {
+        private readonly SyncService _syncService;
         private readonly AppShell _shell;
 
-        public App(AppShell shell)
+        public App(AppShell shell, SyncService syncService)
         {
             InitializeComponent();
+
+            _shell = shell;
+            _syncService = syncService;
 
             bool isDark = Preferences.Get("DarkTheme", false);
 
@@ -18,7 +23,7 @@ namespace StudentApp
                 ? AppTheme.Dark
                 : AppTheme.Light;
 
-            _shell = shell;
+            _syncService.StartMonitoring();
         }
 
         protected override Window CreateWindow(
@@ -49,8 +54,7 @@ namespace StudentApp
                 {
                     vm.RestoreState();
 
-                    Debug.WriteLine(
-                        "Дані студента відновлено");
+                    Debug.WriteLine("Дані студента відновлено");
                 }
             };
 

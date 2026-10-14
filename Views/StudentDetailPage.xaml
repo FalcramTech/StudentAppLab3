@@ -6,30 +6,55 @@
     x:Class="StudentApp.Views.StudentDetailPage"
     Title="Деталі студента">
 
-    <VerticalStackLayout Padding="20" Spacing="15">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
 
-        <Label
-            Text="Деталі студента"
-            FontSize="22"
-            FontAttributes="Bold" />
+            <Label
+                Text="Деталі студента"
+                FontSize="22"
+                FontAttributes="Bold" />
 
-        <Label Text="{Binding FullName, StringFormat='ПІБ: {0}'}" />
+            <Label Text="ПІБ:" />
 
-        <Label Text="{Binding Group, StringFormat='Група: {0}'}" />
+            <Entry
+                Text="{Binding FullName, Mode=TwoWay}"
+                Placeholder="Введіть ПІБ" />
 
-        <Label Text="Середній бал:" />
+            <Label Text="Група:" />
 
-        <Entry
-            Text="{Binding AverageScore, Mode=TwoWay}"
-            Keyboard="Numeric" />
+            <Entry
+                Text="{Binding Group, Mode=TwoWay}"
+                Placeholder="Введіть групу" />
 
-        <Button
-            Text="Зберегти"
-            Command="{Binding SaveCommand}" />
+            <Label Text="Середній бал:" />
 
-        <Button
-            Text="Назад"
-            Command="{Binding GoBackCommand}" />
-    </VerticalStackLayout>
+            <Entry
+                Text="{Binding AverageScore, Mode=TwoWay}"
+                Keyboard="Numeric" />
+
+            <!-- Нове поле -->
+            <Label Text="Номер студентського квитка:" />
+
+            <Entry
+                Text="{Binding StudentCardNumber, Mode=TwoWay}"
+                Placeholder="Введіть номер студентського квитка"
+                Keyboard="Text" />
+
+            <Button
+                Text="Зберегти"
+                Command="{Binding SaveCommand}" />
+
+            <Button
+                Text="Видалити студента"
+                BackgroundColor="#C62828"
+                TextColor="White"
+                Command="{Binding DeleteCommand}" />
+
+            <Button
+                Text="Назад"
+                Command="{Binding GoBackCommand}" />
+
+        </VerticalStackLayout>
+    </ScrollView>
 
 </ContentPage>

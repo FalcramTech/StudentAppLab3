@@ -1,4 +1,5 @@
-﻿using StudentApp.Models;
+﻿
+using StudentApp.Models;
 using StudentApp.Views;
 
 namespace StudentApp
@@ -46,15 +47,14 @@ namespace StudentApp
         {
             if (id != "1")
             {
-                await DisplayAlertAsync(
-                    "Помилка",
-                    "Студента з таким ID не знайдено",
-                    "OK");
+                await DisplayAlertAsync("Помилка", "Студента з таким ID не знайдено", "OK");
+
                 return;
             }
 
             var student = new Student
             {
+                Id = 1,
                 FullName = "Бабенко Іван",
                 Group = "4-14",
                 AverageScore = 5.0

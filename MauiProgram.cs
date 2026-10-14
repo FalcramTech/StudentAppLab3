@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using StudentApp.Services;
 using StudentApp.ViewModels;
+using StudentApp.Repositories;
+using StudentApp.Views;
 
 namespace StudentApp
 {
@@ -27,6 +29,23 @@ namespace StudentApp
             builder.Services.AddSingleton<MainPage>();
 
             builder.Services.AddSingleton<AppShell>();
+
+            builder.Services.AddSingleton<IStudentRepository, StudentRepository>();
+            
+            builder.Services.AddTransient<StudentDetailViewModel>();
+
+            builder.Services.AddTransient<StudentDetailPage>();
+
+            builder.Services.AddSingleton<IStudentRepository, StudentRepository>();
+
+            builder.Services.AddSingleton<ISyncQueueRepository, SyncQueueRepository>();
+
+            builder.Services.AddSingleton<SyncQueueService>();
+
+            builder.Services.AddSingleton<SyncService>();
+
+            builder.Services.AddSingleton<EncryptionService>();
+
 
             return builder.Build();
         }
